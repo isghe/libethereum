@@ -397,6 +397,12 @@ bool ethash_cl_miner::init(
 		}
 
 		// create buffer for dag
+#ifdef IG_FORCE_CHUNK
+#error "IG_FORCE_CHUNK already defined"
+#endif
+
+#define IG_FORCE_CHUNK 1
+#if !IG_FORCE_CHUNK
 		try
 		{
 			m_dagChunksCount = 1;
@@ -410,11 +416,14 @@ bool ethash_cl_miner::init(
 		}
 		catch (cl::Error const& err)
 		{
+#endif
 			try
 			{
+#if !IG_FORCE_CHUNK
 				int errCode = err.err();
 				if (errCode != CL_INVALID_BUFFER_SIZE || errCode != CL_MEM_OBJECT_ALLOCATION_FAILURE)
 					ETHCL_LOG("Allocating/mapping single buffer failed with: " << err.what() << "(" << errCode << ")");
+#endif
 				cl_ulong result;
 				// if we fail midway on the try above make sure we start clean
 				m_dagChunks.clear();
@@ -453,7 +462,10 @@ bool ethash_cl_miner::init(
 				ETHCL_LOG("Allocating/mapping multiple buffers failed with: " << err2.what() << "(" << err2.err() << "). GPU can't allocate the DAG in multiple chunks. Bailing.");
 				return false;
 			}
+#if !IG_FORCE_CHUNK
 		}
+#endif
+#undef IG_FORCE_CHUNK
 		// create buffer for header
 		ETHCL_LOG("Creating buffer for header.");
 		m_header = cl::Buffer(m_context, CL_MEM_READ_ONLY, 32);
